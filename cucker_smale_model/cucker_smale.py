@@ -8,37 +8,15 @@ import matplotlib.pyplot as plt
 import matplotlib
 from scipy.sparse import csgraph
 import random
+import pandas as pd
 import math
 
 
 def initialize():
-    global state, next_state
-    state = np.random.uniform(-10, 10, (N_BIRDS, 3)) # pos x, pos y, velocity
+    global state, next_state, epoch
+    state = np.random.uniform(-30, 30, (N_BIRDS, 3)) # pos x, pos y, velocity
     next_state = np.zeros((N_BIRDS, 3))
-
-# def get_eta(a_ij):
-#     """A function to return eta per the paper"""
-#     return K / (sigma**2 + a_ij)**beta
-
-# def get_Ax(state):
-#     """function to compute the Laplacian at t """
-#     Ax = np.zeros((N_BIRDS, N_BIRDS))
-    
-#     for i in range(N_BIRDS):
-#         for j in range(N_BIRDS):
-#             b1 = state[i, 0:2]
-#             b2 = state[j, 0:2]
-            
-#             a_ij = np.linalg.norm(b1 - b2)
-#             Ax[i, j] = get_eta(a_ij)
-            
-#     return Ax
-
-  
-# def update_velocities(i, state, Lx):
-#     """compute velocity differential"""
-#     new_vel = - (Lx[i] * state[:, 2])[i] + state[i, 2]
-#     return new_vel
+    epoch = 0
 
 
 def update_velocities(i, state):
@@ -85,7 +63,7 @@ def move(i, state):
     bird_dist = dists[i]
     
     
-    angle = math.radians(bird[2] * bird_dist)
+    angle = math.radians(bird[2] * 1/bird_dist)
     n = rotate(centroid, bird[0:2], angle)
     
     noise = np.random.normal(NOISE_M, NOISE_STD, 2)
@@ -98,12 +76,24 @@ def move(i, state):
 
 
 def update():
-   global state, next_state
+   global state, next_state, epoch
    next_state = state.copy()
+   
+   epoch += 1
    
    for i, bird in enumerate(state):
        next_state[i] = move(i, state)
        next_state[i, 2] = update_velocities(i, state)
+       
+       row = {
+           "bird" : i,
+           "x_position" : next_state[i, 0] ,
+           "y_position": next_state[i, 1],
+           "velocity": next_state[i, 2], 
+           "epoch" : epoch
+       }
+       
+       RESULTS.append(row)
    
    state = next_state.copy()
 
@@ -114,7 +104,7 @@ def observe():
     plt.scatter(state[:, 0], 
                 state[:, 1], 
                 c=state[:, 2],
-                s=20,
+                s=40,
                 edgecolor='black',
                 alpha=0.7, 
                 cmap='plasma')
@@ -127,8 +117,7 @@ if __name__ == '__main__':
 
     PLOT_LIM = 100
     N_BIRDS= 50
-    VELOCITY_COEFF = 0.05
-    TIMESTEPS = 2
+    TIMESTEPS = 10
     NOISE_M = 0.5
     NOISE_STD = 1
     
@@ -137,11 +126,23 @@ if __name__ == '__main__':
     sigma = 0.1
     beta = 0.6
     
+    RESULTS = []
+    
+    # # manual running of experiment
     # initialize()
     # for i in range(TIMESTEPS):
     #     update()
         
-    # observe()
+    # # results formatting    
+    # results = pd.DataFrame(RESULTS)
+
+    
+    # for bird in results['bird'].unique():
+    #     tmp = results[results['bird'] == bird]
+    #     plt.plot(tmp['epoch'], tmp['velocity'], lw=1, alpha=0.5, c='C0')
+    
+    # plt.title('Velocity over Time')
+    # plt.show()
     
     
 
